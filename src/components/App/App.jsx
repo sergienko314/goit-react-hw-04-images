@@ -1,105 +1,104 @@
-import { Component } from 'react';
+
 import ImageGallery from '../ImageGallery/';
 import { Wrapper } from './App.styled';
 import { Searchbar } from '../Searchbar';
 import Button from '../Button';
 import faechAPI from '../faechAPI';
 import Modal from '../Modal';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { useEffect, useState } from 'react';
 
-export class App extends Component {
-  state = {
-    photos: [],
-    page: 1,
-    status: 'idle',
-    showModal: false,
-    input: '',
-    submit: true,
-    data: null,
-    loading: false,
-  };
-  notify = () => toast('Wow so easy!');
+const App = () => {
+  const [photos, setPhotos] = useState([]);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('idle');
+  const [showModal, setShowModal] = useState(false);
+  const [input, setInput] = useState('');
+  const [submit, setSubmit] = useState(true);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  returnInpet = input => {
-    this.setState({ input: input });
-  };
-  componentDidMount() {
-    window.addEventListener('keydown', this.handleKeyDown);
-  }
+   
 
-  async componentDidUpdate(prevProps, prevState) {
-    if (
-      this.state.input !== prevState.input ||
-      this.state.page !== prevState.page
-    ) {
-      this.setState({ loading: true });
-      const data = await faechAPI(this.state.input, this.state.page)
-        .catch(err => console.log(err))
-        .finally(this.setState({ loading: false }));
-      if (this.state.page !== 1) {
-        this.setState(prevState => ({
-          photos: [...prevState.photos, ...data],
-        }));
-      } else {
-        this.setState({
-          photos: [...data],
-        });
+  
+  useEffect(() => {
+    if (input !== '') {
+      setLoading(true);
+      const fn = async () => {
+        try {
+          const dataArray = await faechAPI(input, page);
+          if (page !== 1) {
+            setPhotos(prevPhotos => [...prevPhotos, ...dataArray]);
+          }
+
+          else {
+            setPhotos([...dataArray]);
+          }
+        } catch (arr) {
+          console.log(arr);
+        } finally {
+          setLoading(false);
+        }
       }
+    
+      fn();
+      
     }
-  }
+  }, [ input, page] );
+  
+  
 
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.handleKeyDown);
-  }
-
-  modalOn = data => {
-    this.setState(prevState => ({ showModal: !prevState.showModal, data }));
+  const modalOn = data => {
+    setData(data);
+    setShowModal(!showModal);
   };
-  handleKeyDown = e => {
+  const handleKeyDown = e => {
     if (e.code === 'Escape') {
-      this.modalOn();
+      modalOn();
     }
   };
 
-  submitForm = value => {
-    this.setState({ input: value, page: 1 });
-    this.state.photos.length && this.notify();
+  const submitForm = value => {
+    if (value === "") {alert("input is ampty")}
+    setInput(value)
+    setPage(1)
+    // photos.length && alert("data empty, input is not correct");
   };
-
-  nextPage = async () => {
-    this.setState(prevState => ({ loading: true, page: prevState.page + 1 }));
+  
+  
+  const nextPage = () => {
+    setLoading(true);
+    setPage(prevState => prevState + 1)
   };
+  
 
-  render() {
-    if (this.state.status === 'idle') {
-      return (
-        <>
-          <Searchbar
-            submitForm={this.submitForm}
-            returnInpet={this.returnInpet}
-          />
+  if (status === 'idle') {
+    return (
+      <>
+        <Searchbar
+          submitForm={submitForm}
+          // returnInpet={returnInpet}
+        />
 
-          <ToastContainer />
-          {this.state.showModal && (
-            <Modal pictur={this.state.data} modalOn={this.modalOn} />
-          )}
-          {!this.state.photos.length ? (
-            ''
-          ) : (
-            <>
-              <Wrapper>
-                <ImageGallery
-                  arrayPictures={this.state.photos}
-                  modalOn={this.modalOn}
-                />
-              </Wrapper>
-              {/* {this.state.loading && <Loader />} */}
-              <Button nextPage={this.nextPage} />
-            </>
-          )}
-        </>
-      );
-    }
+        {/* <ToastContainer /> */}
+        {showModal && (
+          <Modal pictur={data} modalOn={modalOn} handleKeyDown={handleKeyDown} />
+        )}
+        {!photos.length ? (
+          ''
+        ) : (
+          <>
+            <Wrapper>
+              <ImageGallery
+                arrayPictures={photos}
+                modalOn={modalOn}
+              />
+            </Wrapper>
+            {/* {this.state.loading && <Loader />} */}
+            <Button nextPage={nextPage} />
+          </>
+        )}
+      </>
+    );
   }
 }
+export default App
